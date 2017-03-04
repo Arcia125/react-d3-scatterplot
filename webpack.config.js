@@ -1,6 +1,5 @@
 const webpack = require('webpack');
 const path = require('path');
-const OpenBrowserPlugin = require('open-browser-webpack-plugin');
 const host = 'localhost';
 const port = 8001;
 const prod = process.argv.indexOf('-p') !== -1;
@@ -21,7 +20,7 @@ const config = {
         	exclude: /node_modules/,
         	loader: 'babel-loader',
         	query: {
-        		presets: ['es2015', 'react']
+        		presets: ['es2015']
         	}
         },
         {
