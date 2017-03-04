@@ -1,1 +1,1 @@
-# react-d3-scatterplot 
+# scatterplot

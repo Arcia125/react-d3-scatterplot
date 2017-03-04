@@ -2,7 +2,7 @@ import * as d3 from 'd3';
 
 const getData = () => new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest();
-    const url = `https://raw.githubusercontent.com/FreeCodeCamp/ProjectReferenceData/master/GDP-data.json`;
+    const url = `https://raw.githubusercontent.com/FreeCodeCamp/ProjectReferenceData/master/cyclist-data.json`;
     xhr.open(`GET`, url, true);
     xhr.onload = (event) => {
         const isReady = xhr.readyState === 4;
