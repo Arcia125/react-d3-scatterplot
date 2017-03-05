@@ -21,10 +21,23 @@ const getData = () => new Promise((resolve, reject) => {
     xhr.send(null);
 });
 
+const createToolTip = (data) => `
+<div><span>${data.Name}:${data.Nationality}</span></div>
+<span>Year: ${data.Year}</span>
+<span>, Time: ${data.Time}</span>
+<br>
+<span>${data.Doping}</span>`;
+
+const hasDopingAllegation = (data) => data.Doping !== ``;
+
+const formatMinutes = (data) => {
+    const time = new Date(2012, 0, 1, 0 , data);
+    time.setSeconds(time.getSeconds() + data);
+    return d3.timeFormat(`%H:%M`)(time);
+};
+
 getData()
     .then((data) => {
-        // const scaleAmount = 30;
-        // const scaleDown = (h) => h / scaleAmount;
 
         const maxY = d3.max(data, d => d.Place);
         const width = 1000;
@@ -34,24 +47,24 @@ getData()
         const slowestTime = d3.max(data, d => d.Seconds);
 
         const dataLength = data.length;
-        const barWidth = width / dataLength;
-
-
-        const rectFillNormal = `#5F5FFF`;
-        const rectFillHover = `#9F9FFF`;
 
         const xScale = d3.scaleLinear()
-            .domain([60 * 3.5, 0])
-            .range([0, width]);
+            .domain([60 * 3.1, 0])
+            .range([0, width * .90]);
 
         const yScale = d3.scaleLinear()
-            .domain([1, dataLength])
+            .domain([1, dataLength + 1])
             .range([0, height]);
 
         const xAxis = d3.axisBottom(xScale)
-            .ticks(d3.timeSecond.every(30));
+            .ticks(6)
+            .tickFormat(formatMinutes);
         const yAxis = d3.axisLeft(yScale)
             .ticks(6);
+
+        d3.select(`body`)
+            .style(`background-color`, `#F0F5F5`)
+            .style(`font-family`, `sans-Serif`);
 
         const container = d3.select(`.container`)
             .style(`width`, `${width}px`)
@@ -61,25 +74,14 @@ getData()
         const chart = d3.select(`.chart`)
             .attr(`width`, width)
             .attr(`height`, height)
+            .style(`background-color`, `#FFF`)
             .style(`margin`, `40px auto`)
             .style(`box-shadow`, `2px 2px 7px #888`)
-            .style(`padding`, `50px 50px 75px 50px`);
+            .style(`padding`, `50px 50px 75px 50px`)
+            .attr(`overflow`, `visible`);
 
-        const tooltip = container.append(`div`)
-            .style(`opacity`, `0`)
-            .style(`position`, `absolute`)
-            .style(`text-align`, `left`)
-            .style(`background-color`, `#EFEFFF`)
-            .style(`box-shadow`, `2px 2px 2px #99A`)
-            .style(`padding`, `5px 10px`)
-            .style(`border-radius`, `8px`)
-            .html(data[0]);
-
-
-        const title = chart.append(`text`)
-            .attr(`font-size`, `2.5em`)
-            .attr(`transform`, `translate(${width / 3.5}, 0)`)
-            .text(`Doping in Professional Bicycle Racing`);
+        const noDopingColor = `#222222`;
+        const dopingColor = `#990000`;
 
         const points = chart.selectAll(`circle`)
             .data(data)
@@ -87,14 +89,16 @@ getData()
             .append(`circle`)
             .attr(`cx`, d => xScale(d.Seconds - fastestTime))
             .attr(`cy`, d => yScale(d.Place))
-            .attr(`r`, 5)
-            .attr(`fill`, d => d.Doping === `` ? `#000` : `#F00`)
-            .attr(`data-legend`, d => d.Doping === `` ? `No Doping Allegation` : `Doping Allegations`)
+            .attr(`r`, 6)
+            .attr(`fill`, d => hasDopingAllegation(d) ? dopingColor : noDopingColor)
+            .attr(`data-legend`, d => hasDopingAllegation(d) ? `Doping Allegations` : `No Doping Allegation`)
             .on(`mouseover`, (d) => {
                 tooltip.transition()
                     .duration(200)
-                    .style(`opacity`, .9);
-                tooltip.html(`<span>Place: ${d.Place}</span>`)
+                    .style(`opacity`, 1);
+                tooltip.html(createToolTip(d))
+                    .style(`left`, `${d3.event.pageX + 10}px`)
+                    .style(`top`, `${d3.event.pageY - 30}px`);
             })
             .on(`mouseout`, (d) => {
                 tooltip.transition()
@@ -111,40 +115,94 @@ getData()
             .attr(`y`, d => yScale(d.Place))
             .attr(`transform`, `translate(15, +4)`);
 
-        // const bars = chart.selectAll(`g`)
-        //         .data(data)
-        //     .enter().append(`g`)
-        //         .attr(`transform`, (d, i) => `translate(${i * barWidth}, ${height - scaleDown(d[1])})`)
-        //     .append(`rect`)
-        //         .attr(`width`, barWidth)
-        //         .attr(`fill`, rectFillNormal)
-        //         .attr(`height`, d => scaleDown(d[1]))
-        //         .on(`mouseover`, function (d) {
-        //             const rect = d3.select(this);
-        //             rect.attr(`fill`, rectFillHover);
-        //             tooltip.transition()
-        //                 .duration(250)
-        //                 .style(`opacity`, `1`);
-        //             tooltip.html(`<span style='font-weight: bold'>${d3.format(`$,.2f`)(d[1])} Billion</span><br><span>${d3.timeFormat(`%B - %Y`)(new Date(d[0]))}</span>`)
-        //                 .style(`left`, `${d3.event.pageX + 10}px`)
-        //                 .style(`top`, `${d3.event.pageY - 30}px`);
-        //         })
-        //         .on(`mouseleave`, function (d) {
-        //             const rect = d3.select(this);
-        //             rect.attr(`fill`, rectFillNormal);
-        //             tooltip.transition()
-        //                 .duration(500)
-        //                 .style(`opacity`, `0`);
-        //         })
+        const tooltip = container.append(`div`)
+            .style(`opacity`, `0`)
+            .style(`position`, `absolute`)
+            .style(`text-align`, `left`)
+            .style(`background-color`, `#000`)
+            .style(`color`, `#FFF`)
+            .style(`box-shadow`, `2px 2px 2px #99A`)
+            .style(`padding`, `5px 10px`)
+            .style(`border-radius`, `8px`)
+            .html(data[0]);
 
-        // const xTicks = chart.append(`g`)
-        //     .attr(`class`, `x axis`)
-        //     .attr(`transform`, `translate(0, ${height})`)
-        //     .call(xAxis);
 
-        // const yTicks = chart.append(`g`)
-        //     .attr(`class`, `y axis`)
-        //     .call(yAxis);
+        const title = chart.append(`text`)
+            .attr(`font-size`, `2.5em`)
+            .attr(`transform`, `translate(${width / 6}, 0)`)
+            .text(`Doping in Professional Bicycle Racing`);
+
+        const legendX = width * .8;
+        const legendY = height * .6;
+
+        // legend
+        // no doping key
+        chart
+            .append(`circle`)
+            .attr(`cx`, legendX)
+            .attr(`cy`, legendY)
+            .attr(`r`, 6)
+            .attr(`fill`, noDopingColor);
+
+        // no doping key label
+        chart
+            .append(`text`)
+            .attr(`x`, legendX + 10)
+            .attr(`y`, legendY + 5)
+            .text(`No Doping Allegation`);
+
+        // doping key
+        chart
+            .append(`circle`)
+            .attr(`cx`, legendX)
+            .attr(`cy`, legendY * 1.09)
+            .attr(`r`, 6)
+            .attr(`fill`, dopingColor);
+
+        // doping key label
+        chart
+            .append(`text`)
+            .attr(`x`, legendX + 10)
+            .attr(`y`, legendY * 1.09 + 5)
+            .text(`Doping Allegations`);
+
+
+
+        const xLabel = chart.append(`text`)
+            .attr(`x`, width / 2.5)
+            .attr(`y`, height * 1.05)
+            .attr(`dy`, `.35em`)
+            .text(`Minutes Behind Fastest Time`);
+
+        const yLabel = chart.append(`text`)
+            .attr(`x`, -(width / 3.5))
+            .attr(`y`, -25)
+            .attr(`transform`, `rotate(-90)`)
+            .text(`Ranking`);
+
+        const xTicks = chart.append(`g`)
+            .attr(`class`, `x axis`)
+            .attr(`transform`, `translate(0, ${height})`)
+            .call(xAxis);
+
+        const yTicks = chart.append(`g`)
+            .attr(`class`, `y axis`)
+            .call(yAxis);
+
+        const sources = [
+            `https://en.wikipedia.org/wiki/Alpe_d%27Huez`,
+            `http://www.fillarifoorumi.fi/forum/showthread.php?38129-Ammattilaispy%F6r%E4ilij%F6iden-nousutietoja-%28aika-km-h-VAM-W-W-kg-etc-%29&p=2041608#post2041608`,
+            `https://alex-cycle.blogspot.com/2015/07/alpe-dhuez-tdf-fastest-ascent-times.html`,
+            `http://www.dopeology.org/`,
+        ];
+
+        const notes = container.append(`div`)
+            .style(`background-color`, `#FFF`)
+            .style(`box-shadow`, `2px 2px 2px #99A`)
+            .style(`padding`, `5px 10px`)
+            .style(`border-radius`, `8px`)
+            .style(`transform`, `translate(5%, 0)`)
+            .html(`<div><span>Sources:</span></div>${sources.map(source => `<div><a style='color: black' href=${source}>${source}</a></div>`).join(``)}`);
 
     })
     .catch(err => console.log(err));
